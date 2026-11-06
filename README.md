@@ -1,134 +1,132 @@
-# 🌐 Containerização e Deploy de Aplicação Web com Docker & AWS ECR
+# Containerização e Deploy com Docker & AWS ECR
 
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![AWS](https://img.shields.io/badge/Amazon_AWS-232F3E?style=for-the-badge&logo=amazon-aws&logoColor=white)
 ![Nginx](https://img.shields.io/badge/Nginx-009639?style=for-the-badge&logo=nginx&logoColor=white)
 ![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
 
-> Projeto prático de DevOps focado na containerização de um website estático utilizando **Docker** e **Nginx Alpine**, gerenciamento de artefatos na nuvem com **Amazon ECR (Elastic Container Registry)** e deploy em infraestrutura **AWS EC2**.
+> Projeto prático de containerização de um site estático com **Docker** e **Nginx Alpine**, publicação autenticada no **Amazon ECR** e execução em instância **EC2**.
 
 ---
 
-## 📌 Visão Geral da Solução
+## Visão Geral
 
-O objetivo deste projeto é eliminar inconsistências entre ambientes ("na minha máquina funciona") e garantir portabilidade através da containerização. A solução empacota a aplicação web em uma imagem de alta eficiência e a distribui por meio de um registro privado corporativo na AWS.
+O projeto resolve o problema de inconsistência de ambiente ("na minha máquina funciona") empacotando a aplicação em um container reproduzível, publicando a imagem em um registro privado na AWS e documentando o passo a passo para execução em qualquer EC2.
 
-### 🎯 Principais Destaques
-- **Imagem Otimizada (Alpine Linux):** Uso de `nginx:alpine`, gerando uma imagem de apenas ~25MB (redução de mais de 80% em relação a imagens completas como Debian/Ubuntu), diminuindo a superfície de ataque e o tempo de transferência.
-- **Segurança de Artefatos:** Armazenamento seguro de imagens no Amazon ECR com autenticação tokenizada temporária via AWS CLI v2 (`get-login-password`).
-- **Reprodutibilidade Local:** Execução simplificada tanto via Docker puro quanto com Docker Compose.
+### Destaques técnicos
+- **Nginx Alpine:** imagem base de ~25MB (medido com `docker image inspect` em disco não comprimido), frente a ~130MB da imagem Debian padrão
+- **Autenticação tokenizada:** uso de `aws ecr get-login-password` que gera token temporário de 12h — sem senha em texto puro
+- **Orquestração local:** `docker compose up -d` sobe o ambiente em um comando
 
 ---
 
-## 🏗️ Arquitetura
+## Arquitetura
 
-```mermaid
-flowchart LR
-    Dev["💻 Dev / Local\n(Build Docker)"] -->|"docker build"| Img["📦 Imagem Docker\n(nginx:alpine)"]
-    Img -->|"aws ecr login\n+ docker push"| ECR["☁️ Amazon ECR\n(Private Registry)"]
-    ECR -->|"docker pull"| EC2["🚀 Amazon EC2\n(Instância Linux)"]
-    EC2 -->|"Porta 80"| User["👥 Usuário Final\n(Browser)"]
+```
+Local (Build)  ──docker push──▶  Amazon ECR  ──docker pull──▶  Amazon EC2  ──:80──▶  Browser
 ```
 
+**Fluxo completo:**
+1. `docker build` — cria a imagem localmente
+2. `aws ecr get-login-password` — autentica o Docker no ECR
+3. `docker push` — envia a imagem para o registro privado
+4. Na EC2: `docker pull` + `docker run` — executa o container
+
 ---
 
-## 🛠️ Tecnologias e Ferramentas
+## Tecnologias
 
 | Ferramenta | Finalidade |
 |---|---|
-| **Docker** | Containerização e empacotamento da aplicação |
-| **Nginx Alpine** | Servidor web leve e de alta performance |
-| **Amazon ECR** | Registro de containers seguro e escalável na nuvem AWS |
-| **AWS CLI v2** | Linha de comando para autenticação e gestão de recursos AWS |
-| **Amazon EC2** | Servidor virtual na nuvem onde o container é executado |
+| **Docker** | Containerização da aplicação |
+| **Nginx Alpine** | Servidor web leve (~25MB) |
+| **Amazon ECR** | Registro privado de imagens na AWS |
+| **AWS CLI v2** | Autenticação e comandos AWS |
+| **Amazon EC2** | Servidor de execução do container |
 
 ---
 
-## 📂 Estrutura do Repositório
+## Estrutura do Repositório
 
-```text
-├── website/              # Arquivos do site (HTML5, CSS3, JavaScript)
+```
+├── website/              # Site estático (HTML5, CSS3, JavaScript)
 │   ├── css/
 │   ├── js/
 │   └── index.html
-├── docs/                 # Evidências e screenshots do projeto
-├── Dockerfile            # Instruções para criação da imagem Nginx
-├── docker-compose.yml    # Orquestração do ambiente local
-├── .dockerignore         # Arquivos ignorados durante o build da imagem
-├── .gitignore            # Prevenção de envio de arquivos sensíveis/temporários
-└── README.md             # Documentação técnica do projeto
+├── Dockerfile            # Imagem baseada em nginx:alpine
+├── docker-compose.yml    # Execução local simplificada
+├── .dockerignore         # Exclui node_modules, .git, etc. do contexto de build
+├── .gitignore
+└── README.md
 ```
 
 ---
 
-## 🚀 Como Executar o Projeto Localmente
+## Como Executar Localmente
 
-### Pré-requisitos
-* [Docker Desktop](https://www.docker.com/) instalado e rodando.
-* [Git](https://git-scm.com/) instalado.
+**Pré-requisitos:** Docker Desktop instalado e rodando.
 
-### 1. Clonar o repositório
 ```bash
+# 1. Clonar o repositório
 git clone https://github.com/CesarLana/projeto-devops-aws-docker.git
 cd projeto-devops-aws-docker
-```
 
-### 2. Executar com Docker
-```bash
-# Build da imagem local
+# 2a. Executar com Docker
 docker build -t meu-site:v1.0 .
-
-# Executar o container na porta 8080
 docker run -d -p 8080:80 --name meu-site-app meu-site:v1.0
-```
-Acesse no navegador: `http://localhost:8080`
+# Acesse: http://localhost:8080
 
-### 3. Ou executar com Docker Compose
-```bash
+# 2b. Ou com Docker Compose
 docker compose up -d
 ```
 
 ---
 
-## ☁️ Publicação no Amazon ECR (AWS)
+## Publicar no Amazon ECR
 
-### 1. Autenticação no Registro ECR
-Autentique o Docker no Amazon ECR da sua conta AWS:
-```bash
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <CONTA_AWS>.dkr.ecr.us-east-1.amazonaws.com
-```
+**Pré-requisitos:** AWS CLI v2 configurado com credenciais (`aws configure`).
 
-### 2. Criar a Tag da Imagem
 ```bash
+# 1. Autenticar o Docker no ECR
+aws ecr get-login-password --region us-east-1 \
+  | docker login --username AWS --password-stdin <CONTA_AWS>.dkr.ecr.us-east-1.amazonaws.com
+
+# 2. Criar o repositório (primeira vez)
+aws ecr create-repository --repository-name meu-repositorio --region us-east-1
+
+# 3. Tag e push
 docker tag meu-site:v1.0 <CONTA_AWS>.dkr.ecr.us-east-1.amazonaws.com/meu-repositorio:v1.0
-```
-
-### 3. Push para a Nuvem
-```bash
 docker push <CONTA_AWS>.dkr.ecr.us-east-1.amazonaws.com/meu-repositorio:v1.0
 ```
 
 ---
 
-## 📸 Evidências e Resultados
+## Executar na EC2
 
-*(Adicione suas capturas de tela dentro da pasta `docs/`)*
+A instância EC2 precisa de:
+- **IAM Role** com a policy `AmazonEC2ContainerRegistryReadOnly` associada
+- **Security Group** com inbound TCP 80 aberto para o tráfego desejado
+- Docker instalado (`sudo yum install docker -y && sudo service docker start`)
 
-| Container Local Ativo | Imagem Publicada no Amazon ECR |
-|:---:|:---:|
-| *(Print do site rodando em localhost)* | *(Print do console AWS ECR)* |
+```bash
+# Na EC2, após configurar o IAM Role e instalar o Docker:
+aws ecr get-login-password --region us-east-1 \
+  | docker login --username AWS --password-stdin <CONTA_AWS>.dkr.ecr.us-east-1.amazonaws.com
+
+docker pull <CONTA_AWS>.dkr.ecr.us-east-1.amazonaws.com/meu-repositorio:v1.0
+docker run -d -p 80:80 meu-repositorio:v1.0
+```
 
 ---
 
-## 🔮 Próximos Passos
-- [ ] Automatizar o provisionamento da instância EC2 com **Terraform** (Infraestrutura como Código).
-- [ ] Criar esteira de **CI/CD com GitHub Actions** para build e deploy automatizados.
-- [ ] Configurar certificado SSL/TLS com Let's Encrypt / AWS Certificate Manager.
+## Próximos Passos
+
+- [ ] Provisionar a EC2 com **Terraform** (IaC)
+- [ ] Pipeline **CI/CD com GitHub Actions**: build → push ECR → deploy automático
+- [ ] Certificado SSL/TLS com AWS Certificate Manager
 
 ---
 
-## 👤 Autor
+## Autor
 
-Desenvolvido por **Cesar Lana** como parte do portfólio de engenharia DevOps.
-* **GitHub:** [@CesarLana](https://github.com/CesarLana)
-* **Email:** cesarlana1511@gmail.com
+**Cesar Lana** — [GitHub](https://github.com/CesarLana) · [LinkedIn](https://www.linkedin.com/in/cesarlana/)
