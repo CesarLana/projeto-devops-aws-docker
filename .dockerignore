@@ -1,0 +1,18 @@
+# Ignorar controle de versão e documentação no build da imagem
+.git
+.gitignore
+README.md
+docs/
+*.md
+
+# Configurações locais
+docker-compose.yml
+.vscode/
+.idea/
+
+# Logs e arquivos temporários
+*.log
+logs/
+*.tmp
+.DS_Store
+Thumbs.db

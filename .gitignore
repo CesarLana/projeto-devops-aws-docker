@@ -1,0 +1,18 @@
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# IDEs
+.vscode/
+.idea/
+
+# Chaves e credenciais AWS (segurança obrigatória em repositórios públicos)
+*.pem
+*.key
+.env
+aws-credentials*
